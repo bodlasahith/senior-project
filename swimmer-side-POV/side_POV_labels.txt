@@ -1,0 +1,3 @@
+0 Satisfactory Technique
+1 Technique Needs Improvement
+2 Extraneous/Unidentifiable
