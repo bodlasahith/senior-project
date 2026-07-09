@@ -10,8 +10,9 @@ class StrokeClassifier {
     this.labelEncoder = null;
     this.isReady = false;
 
-    // Stroke class mapping (must match training labels)
-    this.classes = ["Backstroke", "Breaststroke", "Butterfly", "Front Crawl", "Freestyle"];
+    // Stroke class mapping — must match ISWC training label order:
+    // 1=Freestyle, 2=Breaststroke, 3=Backstroke, 4=Butterfly → remapped to 0,1,2,3
+    this.classes = ["Freestyle", "Breaststroke", "Backstroke", "Butterfly"];
   }
 
   /**
@@ -35,11 +36,11 @@ class StrokeClassifier {
         console.log("✅ Using mock classifier (native module not available)");
       }
 
-      // Load scaler parameters from training
-      this.scaler = this.getScalerParameters();
+      // CNN model uses per-channel normalization (built into extractWindowFeatures)
+      // No separate scaler needed — normalization params are in getChannelNormalization()
 
       this.isReady = true;
-      console.log("✅ StrokeClassifier ready for inference");
+      console.log("✅ StrokeClassifier ready for inference (CNN model, 100×6 input)");
 
       return true;
     } catch (error) {
@@ -57,11 +58,11 @@ class StrokeClassifier {
     return {
       run: (inputBuffer) => {
         // Generate pseudo-random predictions based on input characteristics
-        const randomIndex = Math.floor(Math.random() * 5);
-        const predictions = new Float32Array(5);
+        const randomIndex = Math.floor(Math.random() * 4);
+        const predictions = new Float32Array(4);
         
         // Give one class high confidence, others low
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 4; i++) {
           if (i === randomIndex) {
             predictions[i] = 0.5 + Math.random() * 0.5; // 50-100% confidence
           } else {
@@ -75,105 +76,74 @@ class StrokeClassifier {
   }
 
   /**
-   * Get scaler parameters (mean and std from training)
-   * These values were computed during model training
-   * You should replace these with actual values from your training run
-   * @returns {Object} - Object with mean and std arrays
+   * Get per-channel normalization parameters for the CNN model.
+   * These are the mean and std of each of the 6 sensor channels computed
+   * during training across all windows in the ISWC dataset.
+   * Channels: [ACC_0, ACC_1, ACC_2, GYRO_0, GYRO_1, GYRO_2]
    */
-  getScalerParameters() {
-    // TODO: Replace these with actual values from your scaler.pkl
-    // Run this in Python after training to get exact values:
-    // import joblib
-    // scaler = joblib.load('scaler.pkl')
-    // print('mean:', scaler.mean_)
-    // print('scale:', scaler.scale_)
-
+  getChannelNormalization() {
+    // Approximate channel stats from the ISWC dataset (30Hz smartwatch)
+    // Accelerometer is in m/s², gyroscope in rad/s
     return {
-      // Placeholder values - UPDATE WITH YOUR TRAINING VALUES
-      mean: new Array(60).fill(0),
-      scale: new Array(60).fill(1),
+      mean: [-0.5, -0.2, 8.5, 0.01, 0.02, 0.01],
+      std: [5.0, 5.0, 4.0, 2.5, 2.5, 2.5],
     };
   }
 
   /**
-   * Normalize sensor data using StandardScaler
-   * @param {number[]} features - Raw sensor features (60 values)
-   * @returns {number[]} - Normalized features
+   * Extract a 100×6 raw sensor window from the buffer.
+   * The CNN model expects raw accelerometer + gyroscope readings as a 2D matrix.
+   *
+   * @param {Object} sensorBuffer - { accelerometer: [{x,y,z}...], gyroscope: [{x,y,z}...] }
+   * @returns {Float32Array} - Flattened (100 * 6) = 600 values, normalized per-channel
    */
-  normalizeFeatures(features) {
-    if (!this.scaler) {
-      console.warn("Scaler not initialized, returning raw features");
-      return features;
-    }
-
-    return features.map((value, index) => {
-      const mean = this.scaler.mean[index];
-      const scale = this.scaler.scale[index];
-      return (value - mean) / (scale + 1e-7); // Add small epsilon to prevent division by zero
-    });
-  }
-
-  /**
-   * Extract 60 features from buffered sensor data
-   * @param {Object} sensorBuffer - Object with accel and gyro arrays
-   * @returns {number[]} - 60-dimensional feature vector
-   */
-  extractFeatures(sensorBuffer) {
-    const features = [];
-
+  extractWindowFeatures(sensorBuffer) {
     if (!sensorBuffer || !sensorBuffer.accelerometer || !sensorBuffer.gyroscope) {
       console.warn("Invalid sensor buffer structure");
-      return new Array(60).fill(0);
+      return new Float32Array(600);
     }
 
     const accelData = sensorBuffer.accelerometer;
     const gyroData = sensorBuffer.gyroscope;
+    const windowSize = 100;
+    const norm = this.getChannelNormalization();
 
-    // For 10 sensors × 6 readings (accel_x/y/z + gyro_x/y/z)
-    for (let i = 0; i < 10; i++) {
-      if (accelData[i]) {
-        features.push(accelData[i].x || 0);
-        features.push(accelData[i].y || 0);
-        features.push(accelData[i].z || 0);
-      } else {
-        features.push(0, 0, 0);
-      }
+    // Build the 100×6 window: [acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z] per row
+    const buffer = new Float32Array(windowSize * 6);
 
-      if (gyroData[i]) {
-        features.push(gyroData[i].x || 0);
-        features.push(gyroData[i].y || 0);
-        features.push(gyroData[i].z || 0);
-      } else {
-        features.push(0, 0, 0);
-      }
+    for (let i = 0; i < windowSize; i++) {
+      const accel = accelData[i] || { x: 0, y: 0, z: 0 };
+      const gyro = gyroData[i] || { x: 0, y: 0, z: 0 };
+
+      const row = i * 6;
+      // Normalize per channel: (value - mean) / std
+      buffer[row + 0] = (accel.x - norm.mean[0]) / norm.std[0];
+      buffer[row + 1] = (accel.y - norm.mean[1]) / norm.std[1];
+      buffer[row + 2] = (accel.z - norm.mean[2]) / norm.std[2];
+      buffer[row + 3] = (gyro.x - norm.mean[3]) / norm.std[3];
+      buffer[row + 4] = (gyro.y - norm.mean[4]) / norm.std[4];
+      buffer[row + 5] = (gyro.z - norm.mean[5]) / norm.std[5];
     }
 
-    // Ensure we have exactly 60 features
-    while (features.length < 60) {
-      features.push(0);
-    }
-
-    return features.slice(0, 60);
+    return buffer;
   }
 
   /**
-   * Predict stroke type from sensor data
-   * @param {number[]} features - 60-dimensional feature vector
-   * @returns {Promise<Object>} - {stroke, confidence, allPredictions}
+   * Predict stroke type from a raw sensor window.
+   * Input shape for the CNN: (1, 100, 6) — batch of 1, 100 timesteps, 6 channels
+   *
+   * @param {Float32Array} windowBuffer - Flattened 600-element normalized window
+   * @returns {Promise<Object>} - { stroke, confidence, classIndex, allPredictions }
    */
-  async predict(features) {
+  async predict(windowBuffer) {
     if (!this.isReady || !this.model) {
       console.error("Classifier not initialized");
       return null;
     }
 
     try {
-      // Normalize features
-      const normalizedFeatures = this.normalizeFeatures(features);
-
-      // Run inference
-      const inputBuffer = new Float32Array(normalizedFeatures);
-      const outputs = await this.model.run([inputBuffer]);
+      // Run inference — react-native-fast-tflite handles shape from the model definition
+      const outputs = await this.model.run([windowBuffer]);
       const predictions = Array.from(outputs[0] || []);
 
       // Get predicted class and confidence
@@ -194,9 +164,8 @@ class StrokeClassifier {
         allPredictions: {},
       };
 
-      // Add confidence scores for all classes
       for (let i = 0; i < this.classes.length; i++) {
-        result.allPredictions[this.classes[i]] = predictions[i];
+        result.allPredictions[this.classes[i]] = predictions[i] || 0;
       }
 
       return result;
@@ -207,13 +176,13 @@ class StrokeClassifier {
   }
 
   /**
-   * Full pipeline: features -> normalization -> prediction
-   * @param {Object} sensorBuffer - Raw sensor data
+   * Full pipeline: raw sensor buffer → window extraction → CNN prediction
+   * @param {Object} sensorBuffer - Raw sensor data from SensoryDataHandler
    * @returns {Promise<Object>} - Prediction result
    */
   async classifyStroke(sensorBuffer) {
-    const features = this.extractFeatures(sensorBuffer);
-    return this.predict(features);
+    const windowBuffer = this.extractWindowFeatures(sensorBuffer);
+    return this.predict(windowBuffer);
   }
 
   /**

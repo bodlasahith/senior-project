@@ -31,6 +31,7 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
 
 # typescript
@@ -41,3 +42,11 @@ app-example
 # generated native folders
 /ios
 /android
+
+# python venv
+.venv
+
+# Large datasets and model files (not for git)
+datasets/
+*.h5
+package-lock.json
