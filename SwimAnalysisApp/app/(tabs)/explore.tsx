@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { sessionAPI } from '@/services/api';
 
 export default function HistoryScreen() {
+  const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(true);
   const [analytics, setAnalytics] = useState(null);
   const [sessions, setSessions] = useState([]);
@@ -36,7 +38,7 @@ export default function HistoryScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={[styles.container, { paddingTop: insets.top + 16 }]}>
       <ThemedView style={styles.header}>
         <ThemedText type="title">History</ThemedText>
         <ThemedText type="default">Last 30 days</ThemedText>

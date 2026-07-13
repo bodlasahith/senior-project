@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/themed-text';
@@ -7,6 +8,7 @@ import { ThemedView } from '@/components/themed-view';
 import { authAPI } from '@/services/api';
 
 export default function AuthScreen() {
+  const insets = useSafeAreaInsets();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isLogin, setIsLogin] = useState(true);
@@ -103,7 +105,7 @@ export default function AuthScreen() {
 
   if (isLoggedIn && user) {
     return (
-      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.contentContainer}>
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={[styles.contentContainer, { paddingTop: insets.top + 16 }]}>
         <ThemedView style={styles.header}>
           <ThemedText type="title">Profile</ThemedText>
         </ThemedView>
@@ -149,7 +151,7 @@ export default function AuthScreen() {
   // ─── Logged Out: Login/Register Form ───────────────────────────────────────
 
   return (
-    <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.formContainer}>
+    <ScrollView style={styles.scrollContainer} contentContainerStyle={[styles.formContainer, { paddingTop: insets.top + 20 }]}>
       <ThemedView style={styles.header}>
         <ThemedText type="title">🏊 Swim Tracker</ThemedText>
         <ThemedText type="default">

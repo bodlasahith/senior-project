@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -14,6 +15,7 @@ const STROKE_BATCH_SIZE = 5;
 const DEFAULT_MASS_KG = 70;
 
 export default function SessionScreen() {
+  const insets = useSafeAreaInsets();
   // Session state
   const [isReady, setIsReady] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -254,7 +256,7 @@ export default function SessionScreen() {
   };
 
   return (
-    <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.contentContainer}>
+    <ScrollView style={styles.scrollContainer} contentContainerStyle={[styles.contentContainer, { paddingTop: insets.top + 16 }]}>
       <ThemedView style={styles.header}>
         <ThemedText type="title">Swim Session</ThemedText>
         <ThemedText type="default">{statusMessage}</ThemedText>
