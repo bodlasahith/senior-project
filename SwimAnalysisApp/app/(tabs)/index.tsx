@@ -7,6 +7,7 @@ import { ThemedView } from '@/components/themed-view';
 import SensorDataHandler from '@/services/SensoryDataHandler';
 import StrokeClassifier from '@/services/StrokeClassifier';
 import EfficiencyCalculator from '@/services/EfficiencyCalculator';
+import RecommendationEngine from '@/services/RecommendationEngine';
 import WearableService from '@/services/WearableService';
 import { sessionAPI } from '@/services/api';
 
@@ -31,6 +32,7 @@ export default function SessionScreen() {
 
   // Efficiency & insights state
   const [efficiencyResult, setEfficiencyResult] = useState<any>(null);
+  const [recommendation, setRecommendation] = useState<any>(null);
   const [showEfficiency, setShowEfficiency] = useState(false);
   const [liveStrokeRate, setLiveStrokeRate] = useState<number>(0);
   const [sessionElapsed, setSessionElapsed] = useState<number>(0);
@@ -40,6 +42,7 @@ export default function SessionScreen() {
   const sensorHandlerRef = useRef<any>(null);
   const wearableRef = useRef<any>(null);
   const efficiencyCalcRef = useRef<any>(null);
+  const recommendationEngineRef = useRef<any>(new RecommendationEngine());
   const sessionIdRef = useRef<string | null>(null);
   const sessionStartRef = useRef<number | null>(null);
   const strokeBufferRef = useRef<any[]>([]);
@@ -121,6 +124,7 @@ export default function SessionScreen() {
     setCurrentStroke('Detecting...');
     setCurrentConfidence(0);
     setEfficiencyResult(null);
+    setRecommendation(null);
     setShowEfficiency(false);
     setSessionElapsed(0);
     setLiveStrokeRate(0);
@@ -172,6 +176,15 @@ export default function SessionScreen() {
     const efficiency = calculateEfficiency(duration, avgHR);
     setEfficiencyResult(efficiency);
     setShowEfficiency(true);
+
+    // Generate "one thing to fix" recommendation
+    const rec = recommendationEngineRef.current.generate(efficiency, {
+      durationSeconds: duration,
+      strokeCount: allStrokesRef.current.length,
+      heartRate: avgHR,
+      userLevel: efficiencyCalcRef.current?.userProfile?.level || 'recreational',
+    });
+    setRecommendation(rec);
 
     // Save to backend
     try {
@@ -268,7 +281,19 @@ export default function SessionScreen() {
           <ThemedText type="subtitle">📊 Session Analysis</ThemedText>
 
           {efficiencyResult.level === 'no_data' ? (
-            <ThemedText type="default">{efficiencyResult.feedback}</ThemedText>
+            <>
+              <ThemedText type="default">{efficiencyResult.feedback}</ThemedText>
+              {recommendation && (
+                <ThemedView style={styles.recommendationCard}>
+                  <ThemedText type="subtitle" style={styles.recommendationHeader}>
+                    {recommendation.icon} One Thing to Fix
+                  </ThemedText>
+                  <ThemedText type="default" style={styles.recommendationMainText}>
+                    {recommendation.recommendation}
+                  </ThemedText>
+                </ThemedView>
+              )}
+            </>
           ) : (
             <>
               {/* Efficiency Score */}
@@ -287,6 +312,23 @@ export default function SessionScreen() {
                   <ThemedText type="default">🏊 ~{efficiencyResult.details?.estimatedDistance?.toFixed(0)}m</ThemedText>
                 </View>
               </View>
+
+              {/* "One Thing to Fix" Recommendation */}
+              {recommendation && (
+                <ThemedView style={styles.recommendationCard}>
+                  <ThemedText type="subtitle" style={styles.recommendationHeader}>
+                    {recommendation.icon} One Thing to Fix
+                  </ThemedText>
+                  <ThemedText type="default" style={styles.recommendationMainText}>
+                    {recommendation.recommendation}
+                  </ThemedText>
+                  {recommendation.detail && (
+                    <ThemedText type="default" style={styles.recommendationDetail}>
+                      {recommendation.detail}
+                    </ThemedText>
+                  )}
+                </ThemedView>
+              )}
 
               {/* Coaching Feedback */}
               <ThemedView style={styles.feedbackBox}>
@@ -448,6 +490,14 @@ const styles = StyleSheet.create({
   scoreDetails: { gap: 2, alignItems: 'flex-end' },
   efficiencyScore: { fontSize: 38, color: '#10B981', fontWeight: '800' },
   efficiencyLevel: { textTransform: 'capitalize', fontWeight: '600', fontSize: 14 },
+  recommendationCard: {
+    padding: 14, borderRadius: 12, gap: 8,
+    backgroundColor: 'rgba(99, 102, 241, 0.08)',
+    borderLeftWidth: 4, borderLeftColor: '#6366F1',
+  },
+  recommendationHeader: { fontSize: 15, fontWeight: '700', color: '#6366F1' },
+  recommendationMainText: { fontSize: 15, lineHeight: 22, fontWeight: '600' },
+  recommendationDetail: { fontSize: 13, lineHeight: 19, opacity: 0.75 },
   feedbackBox: { padding: 10, borderRadius: 10, backgroundColor: 'rgba(16, 185, 129, 0.08)' },
   feedbackText: { lineHeight: 20 },
   insightBox: {
