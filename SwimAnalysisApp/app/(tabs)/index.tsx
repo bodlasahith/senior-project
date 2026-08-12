@@ -44,6 +44,7 @@ export default function SessionScreen() {
   const efficiencyCalcRef = useRef<any>(null);
   const recommendationEngineRef = useRef<any>(new RecommendationEngine());
   const sessionIdRef = useRef<string | null>(null);
+  const isRecordingRef = useRef(false);
   const sessionStartRef = useRef<number | null>(null);
   const strokeBufferRef = useRef<any[]>([]);
   const allStrokesRef = useRef<any[]>([]);
@@ -154,11 +155,13 @@ export default function SessionScreen() {
       setLiveStrokeRate(minutes > 0.1 ? Math.round(strokes / minutes) : 0);
     }, 1000);
 
+    isRecordingRef.current = true;
     setIsRecording(true);
     setStatusMessage('Recording...');
   };
 
   const stopSession = async () => {
+    isRecordingRef.current = false;
     sensorHandlerRef.current?.stopCollecting();
     wearableRef.current?.stopMonitoring();
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
@@ -227,7 +230,7 @@ export default function SessionScreen() {
   };
 
   const handleBufferFull = async (buffer: any) => {
-    if (!isRecording || !classifierRef.current) return;
+    if (!isRecordingRef.current || !classifierRef.current) return;
     const result = await classifierRef.current.classifyStroke(buffer);
     if (!result) return;
 

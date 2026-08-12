@@ -18,6 +18,12 @@ class SensorDataHandler {
     this.accelSubscription = null;
     this.gyroSubscription = null;
 
+    // Emit a window for classification every `windowStride` new accelerometer
+    // samples (50% overlap). Prevents onBufferFull from firing on every sample
+    // once the buffer is full, which would flood the classifier.
+    this.windowStride = Math.max(1, Math.floor(bufferSize / 2));
+    this.samplesSinceLastEmit = 0;
+
     // Sampling rate (Hz)
     this.samplingRate = 30;
 
@@ -113,6 +119,9 @@ class SensorDataHandler {
       this.sensorBuffer.accelerometer.shift();
     }
 
+    // Count window progress off the accelerometer stream only (accel and gyro
+    // arrive at the same rate, so counting one avoids double-counting).
+    this.samplesSinceLastEmit++;
     this.checkBufferStatus();
 
     if (this.onNewData) {
@@ -150,10 +159,15 @@ class SensorDataHandler {
   checkBufferStatus() {
     const minDataPoints = Math.floor(this.bufferSize * 0.8); // 80% full
 
-    if (
+    const isFull =
       this.sensorBuffer.accelerometer.length >= minDataPoints &&
-      this.sensorBuffer.gyroscope.length >= minDataPoints
-    ) {
+      this.sensorBuffer.gyroscope.length >= minDataPoints;
+
+    // Only emit a window once the buffer is full AND a full stride of new
+    // samples has arrived since the last emit — otherwise onBufferFull would
+    // fire on every sample once the buffer stays full.
+    if (isFull && this.samplesSinceLastEmit >= this.windowStride) {
+      this.samplesSinceLastEmit = 0;
       if (this.onBufferFull) {
         this.onBufferFull(this.getBuffer());
       }
@@ -180,6 +194,7 @@ class SensorDataHandler {
       gyroscope: [],
       timestamps: [],
     };
+    this.samplesSinceLastEmit = 0;
   }
 
   /**
