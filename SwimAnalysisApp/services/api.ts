@@ -1,8 +1,28 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
-const API_URL = 'http://192.168.0.17:3000/api'; // Replace X with your computer's IP
-// For local testing: http://localhost:3000/api
+const API_PORT = 3000;
+
+// Resolve the backend URL without hardcoding an IP. Order of preference:
+//   1. EXPO_PUBLIC_API_URL env var (for staging/production builds)
+//   2. The dev machine's host that Expo/Metro is already serving from — this
+//      makes the app reach the backend from both the iOS simulator and a
+//      physical device on the same Wi-Fi, even when the LAN IP changes.
+//   3. localhost fallback.
+function resolveApiUrl(): string {
+  const explicit = process.env.EXPO_PUBLIC_API_URL;
+  if (explicit) return explicit;
+
+  const hostUri =
+    Constants.expoConfig?.hostUri ||
+    (Constants as any).expoGoConfig?.debuggerHost ||
+    (Constants as any).manifest2?.extra?.expoClient?.hostUri;
+  const host = hostUri ? hostUri.split(':')[0] : 'localhost';
+  return `http://${host}:${API_PORT}/api`;
+}
+
+const API_URL = resolveApiUrl();
 
 const api = axios.create({
   baseURL: API_URL,
