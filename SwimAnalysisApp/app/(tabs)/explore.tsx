@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -9,9 +10,9 @@ import { sessionAPI } from '@/services/api';
 export default function HistoryScreen() {
   const insets = useSafeAreaInsets();
   const [isLoading, setIsLoading] = useState(true);
-  const [analytics, setAnalytics] = useState(null);
-  const [sessions, setSessions] = useState([]);
-  const [error, setError] = useState(null);
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadHistory();
@@ -77,7 +78,16 @@ export default function HistoryScreen() {
               <ThemedText type="default">No sessions recorded yet.</ThemedText>
             ) : (
               sessions.map((session) => (
-                <View key={session._id} style={styles.sessionRow}>
+                <Pressable
+                  key={session._id}
+                  style={({ pressed }) => [styles.sessionRow, pressed && styles.sessionRowPressed]}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/session/[id]',
+                      params: { id: session._id, data: JSON.stringify(session) },
+                    })
+                  }
+                >
                   <View>
                     <ThemedText type="default">
                       {new Date(session.startTime).toLocaleDateString()}
@@ -86,10 +96,13 @@ export default function HistoryScreen() {
                       {session.summary?.totalStrokes || 0} strokes
                     </ThemedText>
                   </View>
-                  <ThemedText type="default">
-                    {session.efficiency?.score ? `${session.efficiency.score.toFixed(1)}%` : '--'}
-                  </ThemedText>
-                </View>
+                  <View style={styles.sessionRowRight}>
+                    <ThemedText type="default">
+                      {session.efficiency?.score ? `${session.efficiency.score.toFixed(1)}%` : '--'}
+                    </ThemedText>
+                    <ThemedText type="default" style={styles.chevron}>›</ThemedText>
+                  </View>
+                </Pressable>
               ))
             )}
           </ThemedView>
@@ -131,6 +144,19 @@ const styles = StyleSheet.create({
   sessionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 8,
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  sessionRowPressed: {
+    opacity: 0.5,
+  },
+  sessionRowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  chevron: {
+    fontSize: 22,
+    opacity: 0.4,
   },
 });
