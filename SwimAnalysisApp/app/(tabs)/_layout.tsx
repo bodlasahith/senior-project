@@ -46,6 +46,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="technique"
+        options={{
+          title: 'Technique',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="camera.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="auth"
         options={{
           title: isLoggedIn ? 'Profile' : 'Login',

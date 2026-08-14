@@ -31,6 +31,12 @@
       "expo-router",
       "react-native-fast-tflite",
       [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to use the camera to analyze your swimming technique."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
