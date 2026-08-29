@@ -98,9 +98,23 @@ class TechniqueClassifier {
    * @returns {Promise<Float32Array>}
    */
   async imageToTensor(uri) {
+    // Pass 1: re-encode to bake in EXIF orientation (iPhone photos store an
+    // upright buffer only via a rotation tag) and read the upright dimensions.
+    const upright = await manipulateAsync(uri, [], { compress: 1, format: SaveFormat.JPEG });
+
+    // Center-crop to a square, matching Teachable Machine's preprocessing, so
+    // a 4:3 camera frame isn't stretched (which would distort proportions the
+    // model never saw in training). THEN resize to 224×224.
+    const side = Math.min(upright.width, upright.height);
+    const originX = Math.floor((upright.width - side) / 2);
+    const originY = Math.floor((upright.height - side) / 2);
+
     const resized = await manipulateAsync(
-      uri,
-      [{ resize: { width: INPUT_SIZE, height: INPUT_SIZE } }],
+      upright.uri,
+      [
+        { crop: { originX, originY, width: side, height: side } },
+        { resize: { width: INPUT_SIZE, height: INPUT_SIZE } },
+      ],
       { base64: true, compress: 1, format: SaveFormat.JPEG }
     );
     const bytes = base64ToBytes(resized.base64);
@@ -145,6 +159,13 @@ class TechniqueClassifier {
       this.classes.forEach((c, i) => {
         allPredictions[c] = probs[i] || 0;
       });
+
+      // Instrumentation for on-device validation: shows whether real inference
+      // is running and how confidently the model discriminates each POV.
+      console.log(
+        `[Technique] ${this.usingMock ? 'MOCK' : 'REAL'} ${pov} → ${this.classes[classIndex]} ` +
+          `(${(maxConfidence * 100).toFixed(1)}%) raw=[${probs.map((p) => p.toFixed(3)).join(', ')}]`
+      );
 
       return { pov, label: this.classes[classIndex], confidence: maxConfidence, classIndex, allPredictions };
     } catch (error) {
