@@ -33,7 +33,9 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow $(PRODUCT_NAME) to use the camera to analyze your swimming technique."
+          "cameraPermission": "Allow $(PRODUCT_NAME) to use the camera to analyze your swimming technique.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
         }
       ],
       [
