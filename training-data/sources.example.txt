@@ -1,0 +1,14 @@
+# Sources for download.sh — copy this file to `sources.txt` and edit.
+#
+# One entry per line:   <pov> <url>
+#   <pov>  = front | top | side   (which camera angle the clip represents)
+#   <url>  = any URL yt-dlp can handle
+#
+# Blank lines and lines starting with '#' are ignored.
+# Choose sources you're allowed to download (clips you own, Creative-Commons /
+# openly-licensed footage, public datasets, or your own recordings).
+#
+# Examples (replace with real, permitted URLs):
+# front  https://example.com/your-front-view-clip.mp4
+# top    https://example.com/your-top-view-clip.mp4
+# side   https://example.com/your-side-view-clip.mp4
