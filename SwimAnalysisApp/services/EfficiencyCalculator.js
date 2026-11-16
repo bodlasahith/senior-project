@@ -40,9 +40,9 @@ class EfficiencyCalculator {
    * Set user profile for personalized calculations
    * @param {Object} profile
    * @param {number} profile.mass - Body mass in kg
-   * @param {number} profile.age - Age in years
-   * @param {number} profile.restingHR - Resting heart rate (bpm)
-   * @param {number} profile.maxHR - Maximum heart rate (bpm), estimated as 220-age if unknown
+   * @param {number} [profile.age] - Age in years
+   * @param {number} [profile.restingHR] - Resting heart rate (bpm)
+   * @param {number} [profile.maxHR] - Maximum heart rate (bpm), estimated as 220-age if unknown
    * @param {string} profile.level - 'beginner' | 'recreational' | 'competitive' | 'elite'
    */
   setUserProfile(profile) {
