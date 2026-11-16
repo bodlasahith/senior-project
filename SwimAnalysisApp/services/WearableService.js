@@ -53,7 +53,7 @@ class WearableService {
 
   /**
    * Initialize the service — probes available APIs
-   * @returns {Promise<Object>} - { healthKitAvailable, bleAvailable }
+   * @returns {Promise<{healthKitAvailable: boolean, bleAvailable: boolean}>}
    */
   async initialize() {
     const capabilities = {

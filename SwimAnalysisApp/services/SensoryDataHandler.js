@@ -199,7 +199,7 @@ class SensorDataHandler {
 
   /**
    * Get buffer statistics
-   * @returns {Object} - Stats about current buffer
+   * @returns {{accelCount: number, gyroCount: number, bufferSize: number, fillPercentage: number, isCollecting: boolean}} - Stats about current buffer
    */
   getBufferStats() {
     return {
