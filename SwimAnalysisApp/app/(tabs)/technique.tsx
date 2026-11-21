@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { MockModelBanner } from '@/components/mock-model-banner';
 import TechniqueClassifier, { TECHNIQUE_CLASSES } from '@/services/TechniqueClassifier';
 
 type Pov = 'front' | 'top' | 'side';
@@ -29,6 +30,7 @@ export default function TechniqueScreen() {
 
   const [pov, setPov] = useState<Pov>('front');
   const [modelReady, setModelReady] = useState(false);
+  const [usingMockModel, setUsingMockModel] = useState(false);
   const [status, setStatus] = useState('Loading technique models…');
   const [isBusy, setIsBusy] = useState(false);
   const [capturedUri, setCapturedUri] = useState<string | null>(null);
@@ -47,9 +49,14 @@ export default function TechniqueScreen() {
         top: require('../../assets/models/technique/top_pov.tflite'),
         side: require('../../assets/models/technique/side_pov.tflite'),
       })
-      .then(() => {
+      .then((ready) => {
+        if (!ready) {
+          setStatus('Technique model unavailable on this device. Analysis is turned off.');
+          return;
+        }
         setModelReady(true);
-        setStatus(classifier.usingMock ? 'Ready (mock — native model unavailable).' : 'Ready. Frame the swimmer and capture.');
+        setUsingMockModel(classifier.usingMock);
+        setStatus('Ready. Frame the swimmer and capture.');
       });
     return () => classifier.dispose();
   }, []);
@@ -114,6 +121,7 @@ export default function TechniqueScreen() {
       <ThemedView style={styles.header}>
         <ThemedText type="title">Technique</ThemedText>
         <ThemedText type="default" style={styles.subtle}>{status}</ThemedText>
+        {usingMockModel && <MockModelBanner what="Technique" />}
       </ThemedView>
 
       {/* POV selector */}

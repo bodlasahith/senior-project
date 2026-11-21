@@ -52,6 +52,7 @@ class TechniqueClassifier {
   /**
    * @param {{front:any, top:any, side:any}} modelSources - require(...) handles
    * for each POV .tflite. Any missing POV is skipped.
+   * @returns {Promise<boolean>} false in release builds when no model loads.
    */
   async initialize(modelSources = {}) {
     try {
@@ -67,7 +68,13 @@ class TechniqueClassifier {
       this.isReady = true;
       return true;
     } catch (error) {
-      console.warn('⚠️ Technique TFLite unavailable, using mock mode:', error.message);
+      if (!__DEV__) {
+        console.error('Technique model unavailable:', error.message);
+        this.isReady = false;
+        return false;
+      }
+      // Dev-only fallback with random predictions; the screen shows a banner.
+      console.warn('⚠️ Technique TFLite unavailable, using DEV-ONLY mock mode:', error.message);
       for (const pov of POV_KEYS) this.models[pov] = this._createMockModel();
       this.usingMock = true;
       this.isReady = true;

@@ -9,6 +9,9 @@ class StrokeClassifier {
     this.scaler = null;
     this.labelEncoder = null;
     this.isReady = false;
+    // True only in development builds when the native TFLite module is missing.
+    // Release builds never fall back to random predictions.
+    this.usingMock = false;
 
     // Stroke class mapping — must match ISWC training label order:
     // 1=Freestyle, 2=Breaststroke, 3=Backstroke, 4=Butterfly → remapped to 0,1,2,3
@@ -30,10 +33,14 @@ class StrokeClassifier {
         this.model = await loadTensorflowModel(modelSource, "default");
         console.log("✅ TFLite model loaded successfully");
       } catch (nativeError) {
-        console.warn("⚠️ Native TFLite not available, using mock mode for testing:", nativeError.message);
-        // Use mock mode for development/testing
+        if (!__DEV__) {
+          throw new Error(`Stroke model unavailable: ${nativeError.message}`);
+        }
+        // Dev-only fallback so the UI can be exercised without the native
+        // module. The screen shows a banner whenever usingMock is true.
+        console.warn("⚠️ Native TFLite not available, using DEV-ONLY mock classifier:", nativeError.message);
         this.model = this.createMockModel();
-        console.log("✅ Using mock classifier (native module not available)");
+        this.usingMock = true;
       }
 
       // CNN model uses per-channel normalization (built into extractWindowFeatures)
@@ -51,7 +58,8 @@ class StrokeClassifier {
   }
 
   /**
-   * Create a mock model for development/testing when native module unavailable
+   * Create a mock model for development builds when the native module is
+   * unavailable. Its predictions are random; never use it in release builds.
    * @returns {Object} - Mock model with run() method
    */
   createMockModel() {
