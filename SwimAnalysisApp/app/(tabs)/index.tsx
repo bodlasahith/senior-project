@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { MockModelBanner } from '@/components/mock-model-banner';
 import SensorDataHandler from '@/services/SensoryDataHandler';
 import StrokeClassifier from '@/services/StrokeClassifier';
 import EfficiencyCalculator from '@/services/EfficiencyCalculator';
@@ -25,6 +26,7 @@ export default function SessionScreen() {
   const [currentConfidence, setCurrentConfidence] = useState(0);
   const [sensorStats, setSensorStats] = useState({ accelCount: 0, bufferSize: 100, fillPercentage: 0 });
   const [recentStrokes, setRecentStrokes] = useState<any[]>([]);
+  const [usingMockModel, setUsingMockModel] = useState(false);
 
   // Heart rate state
   const [heartRate, setHeartRate] = useState<number | null>(null);
@@ -72,7 +74,10 @@ export default function SessionScreen() {
       classifierRef.current = classifier;
       const modelSource = require('../../assets/models/stroke_classification_model.tflite');
       const classifierReady = await classifier.initialize(modelSource);
-      if (!classifierReady) throw new Error('Unable to load TFLite model.');
+      if (!classifierReady) {
+        throw new Error('Stroke model unavailable on this device. Stroke detection is turned off.');
+      }
+      setUsingMockModel(classifier.usingMock);
 
       const sensorHandler = new SensorDataHandler(100);
       sensorHandlerRef.current = sensorHandler;
@@ -276,6 +281,7 @@ export default function SessionScreen() {
       <ThemedView style={styles.header}>
         <ThemedText type="title">Swim Session</ThemedText>
         <ThemedText type="default">{statusMessage}</ThemedText>
+        {usingMockModel && <MockModelBanner what="Stroke" />}
       </ThemedView>
 
       {/* ─── POST-SESSION: EFFICIENCY RESULTS ─── */}
