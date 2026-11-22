@@ -3,6 +3,8 @@
  * Handles model loading, preprocessing, and stroke classification
  */
 
+import { debug } from "./debug";
+
 class StrokeClassifier {
   constructor() {
     this.model = null;
@@ -25,20 +27,20 @@ class StrokeClassifier {
    */
   async initialize(modelSource) {
     try {
-      console.log("Initializing StrokeClassifier...");
+      debug("Initializing StrokeClassifier...");
 
       // Try to load the native TFLite library
       try {
         const { loadTensorflowModel } = await import("react-native-fast-tflite");
         this.model = await loadTensorflowModel(modelSource, "default");
-        console.log("✅ TFLite model loaded successfully");
+        debug("TFLite model loaded successfully");
       } catch (nativeError) {
         if (!__DEV__) {
           throw new Error(`Stroke model unavailable: ${nativeError.message}`);
         }
         // Dev-only fallback so the UI can be exercised without the native
         // module. The screen shows a banner whenever usingMock is true.
-        console.warn("⚠️ Native TFLite not available, using DEV-ONLY mock classifier:", nativeError.message);
+        console.warn("Native TFLite not available, using DEV-ONLY mock classifier:", nativeError.message);
         this.model = this.createMockModel();
         this.usingMock = true;
       }
@@ -47,11 +49,11 @@ class StrokeClassifier {
       // No separate scaler needed — normalization params are in getChannelNormalization()
 
       this.isReady = true;
-      console.log("✅ StrokeClassifier ready for inference (CNN model, 100×6 input)");
+      debug("StrokeClassifier ready for inference (CNN model, 100×6 input)");
 
       return true;
     } catch (error) {
-      console.error("❌ Error initializing StrokeClassifier:", error);
+      console.error("Error initializing StrokeClassifier:", error);
       this.isReady = false;
       return false;
     }

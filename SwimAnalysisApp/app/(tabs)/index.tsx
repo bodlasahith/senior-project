@@ -15,6 +15,7 @@ import { sessionAPI } from '@/services/api';
 const CONFIDENCE_THRESHOLD = 0.7;
 const STROKE_BATCH_SIZE = 5;
 const DEFAULT_MASS_KG = 70;
+const STATS_UPDATE_INTERVAL_MS = 250;
 
 export default function SessionScreen() {
   const insets = useSafeAreaInsets();
@@ -84,8 +85,13 @@ export default function SessionScreen() {
       const sensorsReady = await sensorHandler.initialize();
       if (!sensorsReady) throw new Error('Unable to initialize sensors.');
       sensorHandler.onBufferFull = handleBufferFull;
+      let lastStatsUpdate = 0;
       sensorHandler.onNewData = () => {
-        if (Math.random() < 0.1) setSensorStats(sensorHandler.getBufferStats());
+        // Sensors fire ~30x/s; refresh the buffer stats UI at most 4x/s.
+        const now = Date.now();
+        if (now - lastStatsUpdate < STATS_UPDATE_INTERVAL_MS) return;
+        lastStatsUpdate = now;
+        setSensorStats(sensorHandler.getBufferStats());
       };
 
       const wearable = new WearableService();

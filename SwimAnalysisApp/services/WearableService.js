@@ -18,6 +18,7 @@
  */
 
 import { Platform } from "react-native";
+import { debug } from "./debug";
 
 // HealthKit constants
 const HR_QUANTITY_TYPE = "HKQuantityTypeIdentifierHeartRate";
@@ -68,10 +69,10 @@ class WearableService {
         if (ExpoHealth) {
           this._healthKit = ExpoHealth;
           capabilities.healthKitAvailable = true;
-          console.log("✅ HealthKit available");
+          debug("HealthKit available");
         }
       } catch (e) {
-        console.warn("⚠️ HealthKit not available:", e.message);
+        console.warn("HealthKit not available:", e.message);
       }
     }
 
@@ -81,10 +82,10 @@ class WearableService {
       if (BleManager) {
         this._bleManager = BleManager;
         capabilities.bleAvailable = true;
-        console.log("✅ BLE available");
+        debug("BLE available");
       }
     } catch (e) {
-      console.warn("⚠️ BLE not available:", e.message);
+      console.warn("BLE not available:", e.message);
     }
 
     return capabilities;
@@ -112,10 +113,10 @@ class WearableService {
 
       // On iOS, HealthKit doesn't reveal if the user denied — it just returns
       // the status. We optimistically assume granted if no error was thrown.
-      console.log("✅ HealthKit permissions requested");
+      debug("HealthKit permissions requested");
       return true;
     } catch (error) {
-      console.error("❌ HealthKit permission error:", error);
+      console.error("HealthKit permission error:", error);
       if (this.onError) this.onError("healthkit_permission", error);
       return false;
     }
@@ -149,7 +150,7 @@ class WearableService {
     // Do an immediate fetch
     await this._fetchLatestHealthKitHR();
 
-    console.log("✅ HealthKit HR monitoring started");
+    debug("HealthKit HR monitoring started");
     if (this.onConnectionChange) this.onConnectionChange("connected", "healthkit");
     return true;
   }
@@ -229,7 +230,7 @@ class WearableService {
                   name: device.name || "Unknown HR Monitor",
                   rssi: device.rssi,
                 });
-                console.log(`Found HR device: ${device.name} (${device.id})`);
+                debug(`Found HR device: ${device.name} (${device.id})`);
               }
             }
           }
@@ -282,11 +283,11 @@ class WearableService {
       this.isMonitoring = true;
       this.heartRateHistory = [];
 
-      console.log(`✅ Connected to BLE device: ${device.name}`);
+      debug(`Connected to BLE device: ${device.name}`);
       if (this.onConnectionChange) this.onConnectionChange("connected", "ble");
       return true;
     } catch (error) {
-      console.error("❌ BLE connection error:", error);
+      console.error("BLE connection error:", error);
       if (this.onError) this.onError("ble_connection", error);
       return false;
     }
@@ -387,7 +388,7 @@ class WearableService {
     }
 
     if (this.onConnectionChange) this.onConnectionChange("disconnected", this.source);
-    console.log("✅ Wearable monitoring stopped");
+    debug("Wearable monitoring stopped");
   }
 
   /**

@@ -4,6 +4,7 @@
  */
 
 import { Accelerometer, Gyroscope } from "expo-sensors";
+import { debug } from "./debug";
 
 class SensorDataHandler {
   constructor(bufferSize = 100) {
@@ -37,7 +38,7 @@ class SensorDataHandler {
    */
   async initialize() {
     try {
-      console.log("🔄 Initializing sensors...");
+      debug("Initializing sensors...");
 
       // Set sensor update interval
       const interval = 1000 / this.samplingRate;
@@ -45,10 +46,10 @@ class SensorDataHandler {
       Accelerometer.setUpdateInterval(interval);
       Gyroscope.setUpdateInterval(interval);
 
-      console.log(`✅ Sensors initialized at ${this.samplingRate}Hz`);
+      debug(`Sensors initialized at ${this.samplingRate}Hz`);
       return true;
     } catch (error) {
-      console.error("❌ Error initializing sensors:", error);
+      console.error("Error initializing sensors:", error);
       return false;
     }
   }
@@ -62,7 +63,7 @@ class SensorDataHandler {
       return;
     }
 
-    console.log("📊 Starting sensor data collection...");
+    debug("Starting sensor data collection...");
     this.isCollecting = true;
     this.clearBuffer();
 
@@ -76,7 +77,7 @@ class SensorDataHandler {
       this.handleGyroscopeData(data);
     });
 
-    console.log("✅ Sensor collection started");
+    debug("Sensor collection started");
   }
 
   /**
@@ -99,7 +100,7 @@ class SensorDataHandler {
     }
 
     this.isCollecting = false;
-    console.log("✅ Sensor collection stopped");
+    debug("Sensor collection stopped");
   }
 
   /**
