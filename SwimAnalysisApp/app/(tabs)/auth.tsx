@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { authAPI } from '@/services/api';
+import { DEFAULT_MASS_KG, clearBodyMass, saveBodyMassFromUser } from '@/services/userProfile';
 
 export default function AuthScreen() {
   const insets = useSafeAreaInsets();
@@ -28,7 +29,9 @@ export default function AuthScreen() {
       const token = await AsyncStorage.getItem('authToken');
       if (token) {
         const response = await authAPI.getMe();
-        setUser(response.data.user || response.data);
+        const me = response.data.user || response.data;
+        setUser(me);
+        await saveBodyMassFromUser(me);
         setIsLoggedIn(true);
       }
     } catch {
@@ -52,6 +55,7 @@ export default function AuthScreen() {
       const token = response.data.token;
       await AsyncStorage.setItem('authToken', token);
       setUser(response.data.user);
+      await saveBodyMassFromUser(response.data.user);
       setIsLoggedIn(true);
       setEmail('');
       setPassword('');
@@ -81,6 +85,7 @@ export default function AuthScreen() {
       const token = response.data.token;
       await AsyncStorage.setItem('authToken', token);
       setUser(response.data.user);
+      await saveBodyMassFromUser(response.data.user);
       setIsLoggedIn(true);
       setUsername('');
       setEmail('');
@@ -96,6 +101,7 @@ export default function AuthScreen() {
 
   const handleLogout = async () => {
     await AsyncStorage.removeItem('authToken');
+    await clearBodyMass();
     setUser(null);
     setIsLoggedIn(false);
     setIsLogin(true);
@@ -134,7 +140,7 @@ export default function AuthScreen() {
         <ThemedView style={styles.card}>
           <ThemedText type="subtitle">Settings</ThemedText>
           <ThemedText type="default">
-            Body Mass: {user.profile?.weight || '70'} kg (used for efficiency calculation)
+            Body Mass: {user.profile?.weight || DEFAULT_MASS_KG} kg (used for efficiency calculation)
           </ThemedText>
           <ThemedText type="default">
             Preferred Stroke: {user.goals?.preferredStroke || 'Not set'}

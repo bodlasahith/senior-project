@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { Tabs, usePathname } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -10,10 +10,13 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const pathname = usePathname();
 
+  // Re-check on every tab change so the Login/Profile title follows
+  // logins and logouts without an app restart.
   useEffect(() => {
     checkAuthState();
-  }, []);
+  }, [pathname]);
 
   const checkAuthState = async () => {
     try {
