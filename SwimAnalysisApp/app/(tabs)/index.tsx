@@ -11,10 +11,10 @@ import EfficiencyCalculator from '@/services/EfficiencyCalculator';
 import RecommendationEngine from '@/services/RecommendationEngine';
 import WearableService from '@/services/WearableService';
 import { sessionAPI } from '@/services/api';
+import { DEFAULT_MASS_KG, getBodyMassKg } from '@/services/userProfile';
 
 const CONFIDENCE_THRESHOLD = 0.7;
 const STROKE_BATCH_SIZE = 5;
-const DEFAULT_MASS_KG = 70;
 const STATS_UPDATE_INTERVAL_MS = 250;
 
 export default function SessionScreen() {
@@ -52,6 +52,7 @@ export default function SessionScreen() {
   const strokeBufferRef = useRef<any[]>([]);
   const allStrokesRef = useRef<any[]>([]);
   const timerRef = useRef<any>(null);
+  const massKgRef = useRef<number>(DEFAULT_MASS_KG);
 
   useEffect(() => {
     if (Platform.OS === 'web') {
@@ -104,7 +105,8 @@ export default function SessionScreen() {
 
       // Initialize efficiency calculator with user profile
       const calc = new EfficiencyCalculator();
-      calc.setUserProfile({ mass: DEFAULT_MASS_KG, level: 'recreational' });
+      massKgRef.current = await getBodyMassKg();
+      calc.setUserProfile({ mass: massKgRef.current, level: 'recreational' });
       efficiencyCalcRef.current = calc;
 
       if (capabilities.healthKitAvailable) {
@@ -127,6 +129,10 @@ export default function SessionScreen() {
       Alert.alert('Not Ready', 'Finish initialization before starting.');
       return;
     }
+
+    // Pick up a body mass change made on the Profile tab since launch.
+    massKgRef.current = await getBodyMassKg();
+    efficiencyCalcRef.current?.setUserProfile({ mass: massKgRef.current, level: 'recreational' });
 
     // Reset state
     sessionStartRef.current = Date.now();
@@ -236,7 +242,7 @@ export default function SessionScreen() {
 
     return efficiencyCalcRef.current.calculateFromSession(
       { duration: durationSeconds, strokes },
-      { heartRate: avgHeartRate, mass: DEFAULT_MASS_KG, distance: null }
+      { heartRate: avgHeartRate, mass: massKgRef.current, distance: null }
     );
   };
 
